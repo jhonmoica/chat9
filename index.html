@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat · Login e Cadastro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.18.0/index.css" />
+    <style>
+        /* ===== RESET & BASE ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #121212;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 16px;
+        }
+
+        /* ===== CONTAINER PRINCIPAL ===== */
+        .main-container {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        /* ===== TELA DE AUTENTICAÇÃO ===== */
+        .auth-container {
+            background: #fff;
+            border-radius: 28px;
+            padding: 30px 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+        .auth-container h1 {
+            text-align: center;
+            color: #1e272e;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+        .auth-container p.sub {
+            text-align: center;
+            color: #636e72;
+            margin-bottom: 24px;
+        }
+
+        /* Abas */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: #f1f2f6;
+            border-radius: 16px;
+            padding: 4px;
+            margin-bottom: 24px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 12px;
+            background: transparent;
+            font-weight: 600;
+            color: #636e72;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            background: #6c5ce7;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(108,92,231,0.3);
+        }
+        .tab-btn:hover:not(.active) {
+            background: #e9edf2;
+        }
+
+        .auth-form {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .auth-form.active {
+            display: flex;
+        }
+        .auth-form label {
+            font-weight: 600;
+            color: #2d3436;
+            font-size: 0.9rem;
+        }
+        .auth-form input {
+            padding: 12px 16px;
+            border: 1px solid #dfe6e9;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            transition: 0.2s;
+        }
+        .auth-form input:focus {
+            border-color: #6c5ce7;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(108,92,231,0.15);
+        }
+        .auth-form .btn-primary {
+            background: #6c5ce7;
+            color: #fff;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 8px;
+        }
+        .auth-form .btn-primary:hover {
+            background: #5b4bd5;
+            transform: scale(1.02);
+        }
+        .auth-form .btn-secondary {
+            background: transparent;
+            color: #6c5ce7;
+            border: 1px solid #6c5ce7;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .auth-form .btn-secondary:hover {
+            background: #f0edff;
+        }
+        .auth-error {
+            color: #e74c3c;
+            font-size: 0.85rem;
+            text-align: center;
+            min-height: 20px;
+        }
+
+        /* ===== CHAT (oculto inicialmente) ===== */
+        .chat-wrapper {
+            position: relative;
+            width: 100%;
+            height: 700px;
+            max-height: 95vh;
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+            display: none; /* escondido até login */
+        }
+        .chat-wrapper.visible {
+            display: block;
+        }
+
+        .rotating-border {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                from 0deg,
+                transparent,
+                #a855f7, #d946ef, #8b5cf6, #6d28d9, #a855f7, transparent
+            );
+            animation: rotate 5s linear infinite;
+            z-index: 0;
+        }
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .chat-container {
+            position: absolute;
+            inset: 5px;
+            background: #f8f9fa;
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        /* HEADER */
+        .header {
+            background: #ffffff;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-bottom: 1px solid #eaeef2;
+            flex-shrink: 0;
+        }
+        .profile-photo-wrapper {
+            position: relative;
+            cursor: pointer;
+        }
+        .profile-photo-wrapper input[type="file"] { display: none; }
+        .profile-photo {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e0e4e8;
+            transition: filter 0.2s;
+        }
+        .profile-photo-wrapper:hover .profile-photo {
+            filter: brightness(0.85);
+        }
+        .profile-photo-wrapper .edit-badge {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: #6c5ce7;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #fff;
+        }
+        .user-info {
+            flex: 1;
+        }
+        .user-info h3 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #1e272e;
+        }
+        .user-info .status {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #00b894;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .user-info .status::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #00b894;
+            border-radius: 50%;
+            animation: pulse-dot 1.5s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            color: #636e72;
+        }
+        .header-actions button {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: inherit;
+            transition: color 0.2s;
+        }
+        .header-actions button:hover { color: #6c5ce7; }
+
+        /* MENSAGENS */
+        .messages-area {
+            flex: 1;
+            padding: 20px 16px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scroll-behavior: smooth;
+        }
+        .msg-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            max-width: 85%;
+            animation: popIn 0.25s ease;
+        }
+        .msg-wrapper.sent {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        .msg-wrapper.received {
+            align-self: flex-start;
+            flex-direction: row;
+        }
+        .msg-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 1px solid #e9edf2;
+        }
+        .msg-wrapper.sent .msg-avatar { border-color: #6c5ce7; }
+        .msg {
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            word-break: break-word;
+        }
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.95) translateY(6px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .msg-wrapper.sent .msg {
+            background: #6c5ce7;
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+        .msg-wrapper.received .msg {
+            background: #ffffff;
+            color: #1e272e;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #e9edf2;
+        }
+        .msg .sender-name {
+            font-weight: 600;
+            font-size: 0.75rem;
+            display: block;
+            margin-bottom: 2px;
+            opacity: 0.8;
+        }
+        .msg-wrapper.sent .msg .sender-name { color: rgba(255,255,255,0.85); }
+        .msg-wrapper.received .msg .sender-name { color: #6c5ce7; }
+        .msg .time-stamp {
+            font-size: 0.6rem;
+            opacity: 0.65;
+            display: block;
+            text-align: right;
+            margin-top: 6px;
+            letter-spacing: 0.3px;
+        }
+        .msg-wrapper.sent .msg .time-stamp { color: rgba(255,255,255,0.8); }
+        .msg-wrapper.received .msg .time-stamp { color: #7f8c8d; }
+        .media-preview {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 4px;
+            display: block;
+        }
+        video.media-preview, audio {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        /* INPUT */
+        .input-area {
+            position: relative;
+            padding: 12px 16px;
+            background: #ffffff;
+            border-top: 1px solid #eaeef2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .clip-btn, .emoji-btn {
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            color: #636e72;
+            cursor: pointer;
+            transition: all 0.25s;
+            padding: 4px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .clip-btn:hover, .emoji-btn:hover {
+            color: #6c5ce7;
+            background: #f0f4f8;
+        }
+        .clip-btn.has-file {
+            color: #00b894;
+            background: #e0f7f0;
+            transform: rotate(-20deg);
+        }
+        #fileInput { display: none; }
+        .text-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #dfe6e9;
+            border-radius: 30px;
+            outline: none;
+            background: #f1f2f6;
+            font-size: 0.95rem;
+            transition: 0.2s;
+        }
+        .text-input:focus {
+            background: #fff;
+            border-color: #6c5ce7;
+            box-shadow: 0 0 0 3px rgba(108,92,231,0.15);
+        }
+        .send-btn {
+            background: #6c5ce7;
+            color: white;
+            border: none;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+        .send-btn:hover {
+            background: #5b4bd5;
+            transform: scale(1.05);
+        }
+
+        /* SELETOR DE EMOJIS */
+        .emoji-picker-container {
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            z-index: 10;
+            display: none;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            border-radius: 16px;
+            overflow: hidden;
+            max-height: 320px;
+            max-width: 320px;
+        }
+        .emoji-picker-container.open { display: block; }
+        .emoji-picker-container emoji-picker {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 16px;
+        }
+
+        /* RESPONSIVO */
+        @media (max-width: 480px) {
+            body { padding: 0; }
+            .auth-container { border-radius: 0; padding: 24px 16px; }
+            .chat-wrapper {
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .chat-container { border-radius: 0; inset: 0; }
+            .rotating-border { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <!-- ===== TELA DE AUTENTICAÇÃO ===== -->
+    <div id="authContainer" class="auth-container">
+        <h1><i class="fas fa-comment-dots" style="color:#6c5ce7;"></i> Chat</h1>
+        <p class="sub">Faça login ou crie uma conta</p>
+
+        <!-- Abas -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="login">Entrar</button>
+            <button class="tab-btn" data-tab="register">Cadastrar</button>
+        </div>
+
+        <!-- Form Login -->
+        <form id="loginForm" class="auth-form active">
+            <label for="loginEmail">E-mail</label>
+            <input type="email" id="loginEmail" placeholder="seu@email.com" required />
+            <label for="loginPassword">Senha</label>
+            <input type="password" id="loginPassword" placeholder="********" required />
+            <div class="auth-error" id="loginError"></div>
+            <button type="submit" class="btn-primary">Entrar</button>
+            <button type="button" class="btn-secondary" id="guestBtn">Entrar como convidado</button>
+        </form>
+
+        <!-- Form Cadastro -->
+        <form id="registerForm" class="auth-form">
+            <label for="registerEmail">E-mail</label>
+            <input type="email" id="registerEmail" placeholder="seu@email.com" required />
+            <label for="registerPassword">Senha</label>
+            <input type="password" id="registerPassword" placeholder="******" required />
+            <label for="registerConfirm">Confirmar senha</label>
+            <input type="password" id="registerConfirm" placeholder="******" required />
+            <div class="auth-error" id="registerError"></div>
+            <button type="submit" class="btn-primary">Criar conta</button>
+        </form>
+    </div>
+
+    <!-- ===== CHAT (oculto) ===== -->
+    <div id="chatWrapper" class="chat-wrapper">
+        <div class="rotating-border"></div>
+        <div class="chat-container">
+            <!-- HEADER -->
+            <div class="header">
+                <div class="profile-photo-wrapper" id="profilePhotoWrapper">
+                    <img src="" alt="Sua foto" class="profile-photo" id="myProfilePhoto" />
+                    <span class="edit-badge"><i class="fas fa-camera"></i></span>
+                    <input type="file" id="profilePhotoInput" accept="image/*" />
+                </div>
+                <div class="user-info">
+                    <h3 id="myDisplayName">Carregando...</h3>
+                    <span class="status">Online</span>
+                </div>
+                <div class="header-actions">
+                    <button id="logoutBtn" title="Sair"><i class="fas fa-sign-out-alt"></i></button>
+                    <button id="clearChatBtn" title="Limpar tela"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            </div>
+
+            <!-- MENSAGENS -->
+            <div class="messages-area" id="chatBox" role="log" aria-live="polite"></div>
+
+            <!-- INPUT -->
+            <div class="input-area">
+                <input type="file" id="fileInput" accept="image/*,video/*,audio/*" />
+                <button class="clip-btn" id="clipBtn"><i class="fas fa-paperclip"></i></button>
+                <button class="emoji-btn" id="emojiBtn"><i class="far fa-smile"></i></button>
+                <input type="text" id="msgInput" class="text-input" placeholder="Digite sua mensagem..." />
+                <button class="send-btn" id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+                <div class="emoji-picker-container" id="emojiPickerContainer">
+                    <emoji-picker id="emojiPicker"></emoji-picker>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== IMPORTS FIREBASE ===== -->
+<script type="importmap">
+{
+    "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js",
+        "firebase/database": "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
+        "emoji-picker-element": "https://cdn.jsdelivr.net/npm/emoji-picker-element@1.18.0/index.js"
+    }
+}
+</script>
+
+<script type="module">
+    // ===== IMPORTS =====
+    import { initializeApp } from 'firebase/app';
+    import { 
+        getAuth, 
+        signInWithEmailAndPassword, 
+        createUserWithEmailAndPassword,
+        signInAnonymously,
+        signOut,
+        onAuthStateChanged
+    } from 'firebase/auth';
+    import { getDatabase, ref, push, onChildAdded, query, orderByChild, limitToLast } from 'firebase/database';
+    import { getFirestore, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+    import { Picker } from 'emoji-picker-element';
+
+    // ===== CONFIG =====
+    const firebaseConfig = {
+        apiKey: "AIzaSyCXk5-UZMeKIA1Yh2IY4RHC8Wq8GgqYbl8",
+        authDomain: "chat9-8862e.firebaseapp.com",
+        projectId: "chat9-8862e",
+        storageBucket: "chat9-8862e.firebasestorage.app",
+        messagingSenderId: "28961687784",
+        appId: "1:28961687784:web:e354798cb6b588545a615d"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const database = getDatabase(app);
+    const firestore = getFirestore(app);
+    const messagesRef = ref(database, 'messages');
+
+    // ===== DOM REFS =====
+    const authContainer = document.getElementById('authContainer');
+    const chatWrapper = document.getElementById('chatWrapper');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const loginError = document.getElementById('loginError');
+    const registerError = document.getElementById('registerError');
+    const guestBtn = document.getElementById('guestBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const chatBox = document.getElementById('chatBox');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const fileInput = document.getElementById('fileInput');
+    const clipBtn = document.getElementById('clipBtn');
+    const emojiBtn = document.getElementById('emojiBtn');
+    const emojiPickerContainer = document.getElementById('emojiPickerContainer');
+    const myProfilePhoto = document.getElementById('myProfilePhoto');
+    const profilePhotoInput = document.getElementById('profilePhotoInput');
+    const profileWrapper = document.getElementById('profilePhotoWrapper');
+    const myDisplayName = document.getElementById('myDisplayName');
+    const clearChatBtn = document.getElementById('clearChatBtn');
+
+    // ===== ESTADO DO USUÁRIO =====
+    let currentUser = {
+        uid: null,
+        name: 'Anônimo',
+        avatar: 'https://i.pravatar.cc/150?img=5',
+        email: null,
+        isAnonymous: false
+    };
+
+    // ===== ABA DE AUTENTICAÇÃO =====
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const forms = {
+        login: document.getElementById('loginForm'),
+        register: document.getElementById('registerForm')
+    };
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const tab = btn.dataset.tab;
+            Object.values(forms).forEach(f => f.classList.remove('active'));
+            if (tab === 'login') forms.login.classList.add('active');
+            else forms.register.classList.add('active');
+            // Limpa erros
+            loginError.textContent = '';
+            registerError.textContent = '';
+        });
+    });
+
+    // ===== FUNÇÕES DE AUTENTICAÇÃO =====
+
+    // Login com e-mail/senha
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        loginError.textContent = '';
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            loginError.textContent = error.message;
+        }
+    });
+
+    // Cadastro
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('registerEmail').value.trim();
+        const password = document.getElementById('registerPassword').value;
+        const confirm = document.getElementById('registerConfirm').value;
+        registerError.textContent = '';
+        if (password !== confirm) {
+            registerError.textContent = 'As senhas não coincidem.';
+            return;
+        }
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            registerError.textContent = error.message;
+        }
+    });
+
+    // Entrar como convidado (anônimo)
+    guestBtn.addEventListener('click', async () => {
+        try {
+            await signInAnonymously(auth);
+        } catch (error) {
+            loginError.textContent = error.message;
+        }
+    });
+
+    // Logout
+    logoutBtn.addEventListener('click', async () => {
+        await signOut(auth);
+    });
+
+    // ===== ESTADO DE AUTENTICAÇÃO =====
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // Usuário logado
+            currentUser.uid = user.uid;
+            currentUser.isAnonymous = user.isAnonymous;
+            currentUser.email = user.email;
+
+            // Carregar perfil do Firestore
+            const profileRef = doc(firestore, 'profiles', user.uid);
+            const profileSnap = await getDoc(profileRef);
+            if (profileSnap.exists()) {
+                const data = profileSnap.data();
+                currentUser.name = data.name || 'Anônimo';
+                currentUser.avatar = data.avatar || 'https://i.pravatar.cc/150?img=5';
+            } else {
+                // Perfil não existe: criar com dados padrão
+                const defaultName = user.isAnonymous ? 'Convidado' : user.email?.split('@')[0] || 'Usuário';
+                const defaultAvatar = 'https://i.pravatar.cc/150?img=' + Math.floor(Math.random() * 70);
+                await setDoc(profileRef, {
+                    name: defaultName,
+                    avatar: defaultAvatar,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                });
+                currentUser.name = defaultName;
+                currentUser.avatar = defaultAvatar;
+            }
+
+            // Atualizar UI
+            myDisplayName.textContent = currentUser.name;
+            myProfilePhoto.src = currentUser.avatar;
+            authContainer.style.display = 'none';
+            chatWrapper.classList.add('visible');
+
+            // Iniciar escuta das mensagens (se já não estiver escutando)
+            if (!window._listening) {
+                listenMessages();
+                window._listening = true;
+            }
+        } else {
+            // Deslogado: mostrar tela de autenticação
+            authContainer.style.display = 'block';
+            chatWrapper.classList.remove('visible');
+            chatBox.innerHTML = ''; // limpa mensagens
+            window._listening = false;
+            // Resetar estado
+            currentUser = { uid: null, name: 'Anônimo', avatar: 'https://i.pravatar.cc/150?img=5', email: null, isAnonymous: false };
+        }
+    });
+
+    // ===== FUNÇÃO PARA ADICIONAR MENSAGEM NA TELA =====
+    function displayMessage(data, isSentByMe = false) {
+        const wrapper = document.createElement('div');
+        wrapper.className = `msg-wrapper ${isSentByMe ? 'sent' : 'received'}`;
+
+        const avatar = document.createElement('img');
+        avatar.className = 'msg-avatar';
+        avatar.alt = data.senderName || 'Usuário';
+        avatar.src = data.senderAvatar || 'https://i.pravatar.cc/150?img=1';
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'msg';
+        if (!isSentByMe) {
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'sender-name';
+            nameSpan.textContent = data.senderName || 'Anônimo';
+            msgDiv.appendChild(nameSpan);
+        }
+        const contentSpan = document.createElement('span');
+        if (data.type === 'media') {
+            contentSpan.innerHTML = data.text;
+        } else {
+            contentSpan.textContent = data.text;
+        }
+        msgDiv.appendChild(contentSpan);
+
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'time-stamp';
+        timeSpan.textContent = data.timestamp ? new Date(data.timestamp).toLocaleString('pt-BR') : new Date().toLocaleString('pt-BR');
+        msgDiv.appendChild(timeSpan);
+
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(msgDiv);
+        chatBox.appendChild(wrapper);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // ===== ESCUTAR MENSAGENS =====
+    function listenMessages() {
+        const messagesQuery = query(messagesRef, orderByChild('timestamp'), limitToLast(100));
+        onChildAdded(messagesQuery, (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+            const isMine = data.senderId === currentUser.uid;
+            displayMessage(data, isMine);
+        });
+    }
+
+    // ===== ENVIAR MENSAGEM DE TEXTO =====
+    function sendText() {
+        const txt = msgInput.value.trim();
+        if (!txt || !currentUser.uid) return;
+
+        const message = {
+            text: txt,
+            senderId: currentUser.uid,
+            senderName: currentUser.name,
+            senderAvatar: currentUser.avatar,
+            timestamp: Date.now(),
+            type: 'text'
+        };
+        push(messagesRef, message)
+            .then(() => {
+                msgInput.value = '';
+                msgInput.focus();
+            })
+            .catch((error) => {
+                console.error('Erro ao enviar:', error);
+                alert('Erro ao enviar mensagem.');
+            });
+    }
+
+    // ===== ENVIAR MÍDIA =====
+    function sendMedia(file) {
+        if (!file || !currentUser.uid) return;
+
+        const url = URL.createObjectURL(file);
+        let mediaHTML = '';
+        if (file.type.startsWith('image/')) {
+            mediaHTML = `<img src="${url}" class="media-preview" alt="Imagem" onload="URL.revokeObjectURL('${url}')" />`;
+        } else if (file.type.startsWith('video/')) {
+            mediaHTML = `<video controls class="media-preview" onloadeddata="URL.revokeObjectURL('${url}')"><source src="${url}" /></video>`;
+        } else if (file.type.startsWith('audio/')) {
+            mediaHTML = `<audio controls style="width:100%; border-radius:10px;" onloadeddata="URL.revokeObjectURL('${url}')"><source src="${url}" /></audio>`;
+        } else {
+            alert('Tipo de arquivo não suportado.');
+            URL.revokeObjectURL(url);
+            return;
+        }
+
+        const message = {
+            text: mediaHTML,
+            senderId: currentUser.uid,
+            senderName: currentUser.name,
+            senderAvatar: currentUser.avatar,
+            timestamp: Date.now(),
+            type: 'media'
+        };
+        push(messagesRef, message)
+            .then(() => {
+                fileInput.value = '';
+                clipBtn.classList.remove('has-file');
+            })
+            .catch((error) => {
+                console.error('Erro ao enviar mídia:', error);
+                alert('Erro ao enviar mídia.');
+            });
+    }
+
+    // ===== EVENTOS DO CHAT =====
+    sendBtn.addEventListener('click', sendText);
+    msgInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendText();
+        }
+    });
+
+    clipBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            clipBtn.classList.add('has-file');
+            sendMedia(file);
+        } else {
+            clipBtn.classList.remove('has-file');
+        }
+    });
+
+    clearChatBtn.addEventListener('click', () => {
+        if (confirm('Limpar todas as mensagens da tela?')) {
+            chatBox.innerHTML = '';
+        }
+    });
+
+    // ===== TROCAR FOTO DE PERFIL (local) =====
+    profileWrapper.addEventListener('click', () => {
+        profilePhotoInput.click();
+    });
+    profilePhotoInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const newAvatar = e.target.result;
+                currentUser.avatar = newAvatar;
+                myProfilePhoto.src = newAvatar;
+                // Salvar no Firestore
+                if (currentUser.uid) {
+                    const profileRef = doc(firestore, 'profiles', currentUser.uid);
+                    await updateDoc(profileRef, { avatar: newAvatar, updatedAt: new Date() });
+                }
+            };
+            reader.readAsDataURL(file);
+            this.value = '';
+        }
+    });
+
+    // ===== EMOJI PICKER =====
+    const picker = new Picker({ theme: 'light' });
+    emojiPickerContainer.appendChild(picker);
+
+    picker.addEventListener('emoji-click', (event) => {
+        const emoji = event.detail.unicode;
+        const start = msgInput.selectionStart;
+        const end = msgInput.selectionEnd;
+        const text = msgInput.value;
+        msgInput.value = text.substring(0, start) + emoji + text.substring(end);
+        const newPos = start + emoji.length;
+        msgInput.selectionStart = msgInput.selectionEnd = newPos;
+        msgInput.focus();
+        emojiPickerContainer.classList.remove('open');
+    });
+
+    emojiBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = emojiPickerContainer.classList.toggle('open');
+        if (isOpen) {
+            document.addEventListener('click', closeOnOutsideClick);
+        } else {
+            document.removeEventListener('click', closeOnOutsideClick);
+        }
+    });
+
+    function closeOnOutsideClick(e) {
+        if (!emojiPickerContainer.contains(e.target) && e.target !== emojiBtn) {
+            emojiPickerContainer.classList.remove('open');
+            document.removeEventListener('click', closeOnOutsideClick);
+        }
+    }
+
+    // ===== INICIALIZAÇÃO =====
+    // Já está escutando o onAuthStateChanged
+    console.log('App iniciado. Aguardando autenticação...');
+</script>
+</body>
+</html>
